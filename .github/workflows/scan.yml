@@ -1,0 +1,139 @@
+name: WordPress WPScan - DevSecOps Pipeline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docker/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      wp_image:
+        description: 'WordPress image to scan (vulnerable baseline or hardened build)'
+        default: 'wordpress:5.7.0-php7.4-apache'
+        required: true
+        type: string
+      scan_label:
+        description: 'Label for the scan output file (e.g. before, after)'
+        default: 'before'
+        required: true
+        type: string
+
+jobs:
+  wpscan:
+    name: Deploy WP and run WPScan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      WP_IMAGE: ${{ github.event.inputs.wp_image || 'wordpress:5.7.0-php7.4-apache' }}
+      SCAN_LABEL: ${{ github.event.inputs.scan_label || format('ci-{0}', github.run_number) }}
+      WP_PORT: 8090
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Display Docker environment
+        run: |
+          docker version
+          docker compose version
+
+      - name: Create dedicated network
+        run: docker network create wp-net
+
+      - name: Start MariaDB
+        run: |
+          docker run -d --name wp-db --network wp-net \
+            -e MARIADB_ROOT_PASSWORD=rootpass \
+            -e MARIADB_DATABASE=wordpress \
+            -e MARIADB_USER=wpuser \
+            -e MARIADB_PASSWORD=wppass \
+            mariadb:10.6
+
+      - name: Start WordPress (${{ env.WP_IMAGE }})
+        run: |
+          docker run -d --name wp-site --network wp-net \
+            -p ${WP_PORT}:80 \
+            -e WORDPRESS_DB_HOST=wp-db:3306 \
+            -e WORDPRESS_DB_USER=wpuser \
+            -e WORDPRESS_DB_PASSWORD=wppass \
+            -e WORDPRESS_DB_NAME=wordpress \
+            "$WP_IMAGE"
+
+      - name: Wait for WordPress installer to come up
+        run: |
+          for i in $(seq 1 60); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:${WP_PORT}/wp-admin/install.php" || true)
+            if [ "$code" = "200" ]; then
+              echo "WordPress installer is ready"
+              exit 0
+            fi
+            echo "[$i/60] waiting for WP (got $code)"
+            sleep 5
+          done
+          echo "WordPress never came up"
+          docker logs wp-site || true
+          exit 1
+
+      - name: Run WordPress auto-install
+        run: |
+          curl -sS -X POST "http://localhost:${WP_PORT}/wp-admin/install.php?step=2" \
+            --data-urlencode "weblog_title=DevSecOps Lab" \
+            --data-urlencode "user_name=admin" \
+            --data-urlencode "admin_password=Insecure123!Lab" \
+            --data-urlencode "admin_password2=Insecure123!Lab" \
+            --data-urlencode "pw_weak=1" \
+            --data-urlencode "admin_email=admin@devsecops.lab" \
+            --data-urlencode "Submit=Install WordPress" > /dev/null
+          title=$(curl -s "http://localhost:${WP_PORT}/" | grep -oE '<title>[^<]+</title>' | head -1)
+          echo "Homepage title: $title"
+
+      - name: Run WPScan (text report)
+        env:
+          WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
+        run: |
+          mkdir -p scans
+          docker run --rm --network host \
+            -v "$PWD/scans:/scans" \
+            wpscanteam/wpscan \
+            --url "http://localhost:${WP_PORT}" \
+            --api-token "$WPSCAN_API_TOKEN" \
+            --enumerate u,vp,vt,cb,dbe \
+            --plugins-detection aggressive \
+            --random-user-agent \
+            --format cli-no-color \
+            -o "/scans/${SCAN_LABEL}.txt" || true
+
+      - name: Show scan summary in job log
+        run: |
+          echo "=== Scan summary (${SCAN_LABEL}) ==="
+          grep -E "vulnerabilit(y|ies) identified|^\[\+\] " "scans/${SCAN_LABEL}.txt" | head -40 || true
+
+      - name: Upload scan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wpscan-${{ env.SCAN_LABEL }}
+          path: scans/${{ env.SCAN_LABEL }}.*
+          retention-days: 90
+
+      - name: Commit scan output back to repo (main branch only)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "scans/${SCAN_LABEL}.txt" || true
+          if ! git diff --cached --quiet; then
+            git commit -m "ci(scan): add WPScan output ${SCAN_LABEL} [skip ci]"
+            git push
+          else
+            echo "No scan changes to commit"
+          fi
+
+      - name: Tear down containers
+        if: always()
+        run: |
+          docker rm -f wp-site wp-db || true
+          docker network rm wp-net || true
