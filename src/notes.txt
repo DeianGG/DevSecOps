@@ -1,0 +1,7 @@
+Working notes - dev only.
+
+Baseline image (intentionally vulnerable):
+  wordpress:5.7.0-php7.4-apache  -> multiple known CVEs in WP core 5.7.0 and PHP 7.4
+  mysql:5.7                       -> EOL October 2023
+
+Hardened image (Phase 4) -> docker/Dockerfile
