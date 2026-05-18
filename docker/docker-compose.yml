@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mariadb:10.6
+    container_name: wp-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MARIADB_DATABASE: ${MYSQL_DATABASE:-wordpress}
+      MARIADB_USER: ${MYSQL_USER:-wpuser}
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - wp-net
+
+  wordpress:
+    image: wordpress:5.7.0-php7.4-apache
+    platform: linux/amd64
+    container_name: wp-site
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8090:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-wpuser}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+    volumes:
+      - wp_data:/var/www/html
+    networks:
+      - wp-net
+
+volumes:
+  db_data:
+  wp_data:
+
+networks:
+  wp-net:
+    driver: bridge
