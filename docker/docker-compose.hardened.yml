@@ -1,0 +1,43 @@
+services:
+  db:
+    image: mariadb:10.6
+    container_name: wp-db-hardened
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootpass}
+      MARIADB_DATABASE: ${MYSQL_DATABASE:-wordpress}
+      MARIADB_USER: ${MYSQL_USER:-wpuser}
+      MARIADB_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+    volumes:
+      - db_data_hardened:/var/lib/mysql
+    networks:
+      - wp-net-hardened
+
+  wordpress:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: deiangg/devsecops:hardened
+    container_name: wp-site-hardened
+    restart: unless-stopped
+    depends_on:
+      - db
+    ports:
+      - "8091:80"
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: ${MYSQL_USER:-wpuser}
+      WORDPRESS_DB_PASSWORD: ${MYSQL_PASSWORD:-wppass}
+      WORDPRESS_DB_NAME: ${MYSQL_DATABASE:-wordpress}
+    volumes:
+      - wp_data_hardened:/var/www/html
+    networks:
+      - wp-net-hardened
+
+volumes:
+  db_data_hardened:
+  wp_data_hardened:
+
+networks:
+  wp-net-hardened:
+    driver: bridge
