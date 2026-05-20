@@ -55,12 +55,19 @@ RUN set -eux; \
     find /usr/src/wordpress -type d -exec chmod 0755 {} \; ; \
     find /usr/src/wordpress -type f -exec chmod 0644 {} \;
 
-# ---- 6. Healthcheck -----------------------------------------------------------
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -fsS -o /dev/null http://localhost/wp-login.php || exit 1
+# ---- 6. Switch Apache to unprivileged port 8080 so the whole container ------
+#         can run as non-root (no CAP_NET_BIND_SERVICE needed).
+RUN set -eux; \
+    sed -ri 's!^Listen 80$!Listen 8080!' /etc/apache2/ports.conf; \
+    sed -ri 's!:80>!:8080>!' /etc/apache2/sites-enabled/000-default.conf; \
+    # Apache runtime directories must be writable by www-data
+    mkdir -p /var/run/apache2; \
+    chown -R www-data:www-data /var/run/apache2 /var/log/apache2 /var/lock
 
-# Apache must keep running as root to bind port 80 (then it drops to www-data
-# per its own MPM config). Running the whole container as a non-root UID would
-# require rebuilding the listening port, which the upstream image does not
-# support out of the box. Documented as a known trade-off in the report.
-EXPOSE 80
+# ---- 7. Healthcheck -----------------------------------------------------------
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -fsS -o /dev/null http://localhost:8080/wp-login.php || exit 1
+
+# Drop privileges. Apache binds 8080 (unprivileged), entrypoint runs as www-data.
+USER www-data
+EXPOSE 8080
