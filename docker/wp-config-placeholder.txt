@@ -1,0 +1,35 @@
+# wp-config.php hardening constants
+#
+# These are injected into wp-config.php at runtime by the upstream
+# WordPress entrypoint via the WORDPRESS_CONFIG_EXTRA env var (see Dockerfile).
+# Kept here as a human-readable reference / template.
+#
+# Database credentials are NOT in this file — they come from docker/.env
+# (gitignored). Use docker/.env.example as a template for those.
+
+# --- Block in-browser file editing (admin -> Appearance -> Theme Editor) ---
+# Closes a common post-compromise RCE path: an attacker who lands an admin
+# session can otherwise write PHP directly to a theme file and re-enter.
+define('DISALLOW_FILE_EDIT', true);
+
+# --- Block plugin/theme installation and updates from the admin UI ---
+# Same rationale, broader scope. Updates happen via image rebuild instead.
+define('DISALLOW_FILE_MODS', true);
+
+# --- Keep automatic minor security updates of WordPress core on ---
+# Even with DISALLOW_FILE_MODS we want emergency security patches.
+define('AUTOMATIC_UPDATER_DISABLED', false);
+define('WP_AUTO_UPDATE_CORE', 'minor');
+
+# --- Force admin and login over HTTPS when a TLS terminator is in front ---
+# Disabled in the lab (plain HTTP); enable in production.
+define('FORCE_SSL_ADMIN', false);
+
+# --- Hide error output from end users; still write to the PHP error log ---
+define('WP_DEBUG', false);
+define('WP_DEBUG_DISPLAY', false);
+
+# --- Bound the data WordPress keeps around ---
+# Smaller attack surface in the database, less to scrape if it leaks.
+define('WP_POST_REVISIONS', 5);
+define('EMPTY_TRASH_DAYS', 7);
