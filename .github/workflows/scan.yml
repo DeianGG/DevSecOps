@@ -20,6 +20,11 @@ on:
         default: 'before'
         required: true
         type: string
+      wp_container_port:
+        description: "Container port WordPress listens on (80 for upstream, 8080 for the hardened image)"
+        default: '80'
+        required: false
+        type: string
 
 jobs:
   wpscan:
@@ -31,6 +36,7 @@ jobs:
       WP_IMAGE: ${{ github.event.inputs.wp_image || 'wordpress:5.7.0-php7.4-apache' }}
       SCAN_LABEL: ${{ github.event.inputs.scan_label || format('ci-{0}', github.run_number) }}
       WP_PORT: 8090
+      WP_CONTAINER_PORT: ${{ github.event.inputs.wp_container_port || '80' }}
 
     steps:
       - name: Checkout repository
@@ -56,7 +62,7 @@ jobs:
       - name: Start WordPress (${{ env.WP_IMAGE }})
         run: |
           docker run -d --name wp-site --network wp-net \
-            -p ${WP_PORT}:80 \
+            -p ${WP_PORT}:${WP_CONTAINER_PORT} \
             -e WORDPRESS_DB_HOST=wp-db:3306 \
             -e WORDPRESS_DB_USER=wpuser \
             -e WORDPRESS_DB_PASSWORD=wppass \
@@ -91,7 +97,7 @@ jobs:
           title=$(curl -s "http://localhost:${WP_PORT}/" | grep -oE '<title>[^<]+</title>' | head -1)
           echo "Homepage title: $title"
 
-      - name: Run WPScan (text report)
+      - name: Run WPScan
         env:
           WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
         run: |
@@ -106,6 +112,7 @@ jobs:
             --random-user-agent \
             --format cli-no-color \
             -o "/scans/${SCAN_LABEL}.txt" || true
+
 
       - name: Show scan summary in job log
         run: |

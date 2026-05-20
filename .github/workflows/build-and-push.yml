@@ -79,6 +79,7 @@ jobs:
               ref: 'main',
               inputs: {
                 wp_image: `ghcr.io/${context.repo.owner.toLowerCase()}/${{ env.IMAGE_NAME }}:hardened`,
-                scan_label: 'after'
+                scan_label: 'after',
+                wp_container_port: '8080'
               }
             });
