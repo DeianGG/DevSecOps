@@ -129,6 +129,7 @@ The hardened Dockerfile applies the following changes to `wordpress:6.8.3-php8.3
 | **WordPress constants** | `DISALLOW_FILE_EDIT`, `DISALLOW_FILE_MODS`, `WP_DEBUG=false`, `WP_POST_REVISIONS=5` |
 | **File permissions** | All WP files `0644`, directories `0755`, owned by `www-data` |
 | **OS packages** | Removed `wget`, `nano`, `vim-tiny`, `less` |
+| **Non-root container** | Apache rebound to unprivileged port 8080; container runs entirely as `www-data` (UID 33) |
 | **Observability** | Healthcheck against `/wp-login.php` |
 | **Provenance** | OCI image labels for repo source + license |
 
@@ -172,7 +173,7 @@ Two GitHub Actions workflows live under `.github/workflows/`:
 Pull and run:
 ```bash
 docker run -d --name wp-hardened \
-  -p 8091:80 \
+  -p 8091:8080 \
   -e WORDPRESS_DB_HOST=<host> \
   -e WORDPRESS_DB_USER=<user> \
   -e WORDPRESS_DB_PASSWORD=<pass> \
