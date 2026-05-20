@@ -97,7 +97,7 @@ jobs:
           title=$(curl -s "http://localhost:${WP_PORT}/" | grep -oE '<title>[^<]+</title>' | head -1)
           echo "Homepage title: $title"
 
-      - name: Run WPScan
+      - name: Run WPScan (human-readable text report)
         env:
           WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
         run: |
@@ -113,6 +113,20 @@ jobs:
             --format cli-no-color \
             -o "/scans/${SCAN_LABEL}.txt" || true
 
+      - name: Run WPScan (structured JSON report)
+        env:
+          WPSCAN_API_TOKEN: ${{ secrets.WPSCAN_API_TOKEN }}
+        run: |
+          docker run --rm --network host \
+            -v "$PWD/scans:/scans" \
+            wpscanteam/wpscan \
+            --url "http://localhost:${WP_PORT}" \
+            --api-token "$WPSCAN_API_TOKEN" \
+            --enumerate u,vp,vt,cb,dbe \
+            --plugins-detection aggressive \
+            --random-user-agent \
+            --format json \
+            -o "/scans/${SCAN_LABEL}.json" || true
 
       - name: Show scan summary in job log
         run: |
@@ -131,7 +145,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "scans/${SCAN_LABEL}.txt" || true
+          git add "scans/${SCAN_LABEL}.txt" "scans/${SCAN_LABEL}.json" || true
           if ! git diff --cached --quiet; then
             git commit -m "ci(scan): add WPScan output ${SCAN_LABEL} [skip ci]"
             git push
