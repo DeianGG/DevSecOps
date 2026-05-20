@@ -13,7 +13,7 @@ _______________________________________________________________
 _______________________________________________________________
 
 [+] URL: http://host.docker.internal:8091/ [192.168.65.254]
-[+] Started: Mon May 18 15:30:58 2026
+[+] Started: Wed May 20 10:12:59 2026
 
 Interesting Finding(s):
 
@@ -58,12 +58,12 @@ Interesting Finding(s):
 [+] WPScan DB API OK
  | Plan: free
  | Requests Done (during the scan): 1
- | Requests Remaining: 20
+ | Requests Remaining: 24
 
-[+] Finished: Mon May 18 15:31:05 2026
+[+] Finished: Wed May 20 10:13:06 2026
 [+] Requests Done: 8264
 [+] Cached Requests: 4
-[+] Data Sent: 2.837 MB
+[+] Data Sent: 2.742 MB
 [+] Data Received: 2.769 MB
-[+] Memory used: 204.805 MB
+[+] Memory used: 204.27 MB
 [+] Elapsed time: 00:00:07
