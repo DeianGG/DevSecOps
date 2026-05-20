@@ -1,0 +1,109 @@
+{
+  "banner": {
+    "description": "WordPress Security Scanner by the WPScan Team",
+    "version": "3.8.28",
+    "authors": [
+      "@_WPScan_",
+      "@ethicalhack3r",
+      "@erwan_lr",
+      "@firefart"
+    ],
+    "sponsor": "Sponsored by Automattic - https://automattic.com/"
+  },
+  "start_time": 1779273417,
+  "start_memory": 65273856,
+  "target_url": "http://host.docker.internal:8091/",
+  "target_ip": "192.168.65.254",
+  "effective_url": "http://host.docker.internal:8091/",
+  "interesting_findings": [
+    {
+      "url": "http://host.docker.internal:8091/",
+      "to_s": "Headers",
+      "type": "headers",
+      "found_by": "Headers (Passive Detection)",
+      "confidence": 100,
+      "confirmed_by": {
+
+      },
+      "references": {
+
+      },
+      "interesting_entries": [
+        "Server: Apache",
+        "Referrer-Policy: strict-origin-when-cross-origin",
+        "Permissions-Policy: geolocation=(), microphone=(), camera=()"
+      ]
+    },
+    {
+      "url": "http://host.docker.internal:8091/wp-cron.php",
+      "to_s": "The external WP-Cron seems to be enabled: http://host.docker.internal:8091/wp-cron.php",
+      "type": "wp_cron",
+      "found_by": "Direct Access (Aggressive Detection)",
+      "confidence": 60,
+      "confirmed_by": {
+
+      },
+      "references": {
+        "url": [
+          "https://www.iplocation.net/defend-wordpress-from-ddos",
+          "https://github.com/wpscanteam/wpscan/issues/1299"
+        ]
+      },
+      "interesting_entries": [
+
+      ]
+    }
+  ],
+  "version": {
+    "number": "6.8.3",
+    "release_date": "2025-09-30",
+    "status": "insecure",
+    "found_by": "Emoji Settings (Passive Detection)",
+    "confidence": 100,
+    "interesting_entries": [
+      "http://host.docker.internal:8091/, Match: 'wp-includes\\/js\\/wp-emoji-release.min.js?ver=6.8.3'"
+    ],
+    "confirmed_by": {
+      "Meta Generator (Passive Detection)": {
+        "confidence": 60,
+        "interesting_entries": [
+          "http://host.docker.internal:8091/, Match: 'WordPress 6.8.3'"
+        ]
+      }
+    },
+    "vulnerabilities": [
+
+    ]
+  },
+  "main_theme": null,
+  "plugins": {
+
+  },
+  "themes": {
+
+  },
+  "config_backups": {
+
+  },
+  "db_exports": {
+
+  },
+  "users": {
+
+  },
+  "vuln_api": {
+    "plan": "free",
+    "requests_done_during_scan": 1,
+    "requests_remaining": 21
+  },
+  "stop_time": 1779273423,
+  "elapsed": 6,
+  "requests_done": 8264,
+  "cached_requests": 4,
+  "data_sent": 2834310,
+  "data_sent_humanised": "2.703 MB",
+  "data_received": 2903584,
+  "data_received_humanised": "2.769 MB",
+  "used_memory": 213774336,
+  "used_memory_humanised": "203.871 MB"
+}
